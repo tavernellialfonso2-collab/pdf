@@ -3,270 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filtro de Cuadruplicados PDF</title>
+    <title>Suite PDF - Herramientas de Procesamiento</title>
     
-    <!-- Tailwind CSS para el diseño -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- PDF.js para extraer y leer texto del PDF -->
+    <!-- Librerías PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    
-    <!-- pdf-lib para crear y editar el nuevo PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-
+    
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-        }
-        .drop-zone-active {
-            border-color: #3b82f6 !important;
-            background-color: #eff6ff !important;
-        }
-        /* Spinner animation */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin-fast {
-            animation: spin 0.8s linear infinite;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-item.active { background-color: #374151; border-left: 4px solid #3b82f6; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex h-screen overflow-hidden text-gray-800">
 
-    <main class="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
-        <!-- Header -->
-        <div class="bg-blue-600 p-6 text-white text-center">
-            <div class="flex justify-center mb-3">
-                <svg class="w-12 h-12 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight">Filtro de Cuadruplicados</h1>
-            <p class="text-blue-100 text-sm mt-2">Elimina únicamente las hojas "CUADRUPLICADO" de tus documentos.</p>
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-white flex flex-col">
+        <div class="p-6 border-b border-gray-800">
+            <h1 class="text-xl font-bold tracking-wider">SUITE PDF</h1>
+            <p class="text-xs text-gray-400 mt-1">Procesamiento Local</p>
         </div>
+        <nav class="flex-1 overflow-y-auto py-4">
+            <button onclick="switchTab('filter')" id="nav-filter" class="nav-item active w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
+                1. Filtrar Cuadruplicados
+            </button>
+            <button onclick="switchTab('merge')" id="nav-merge" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
+                2. Unir Archivos
+            </button>
+            <button onclick="switchTab('split')" id="nav-split" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
+                3. Extraer Páginas
+            </button>
+            <button onclick="switchTab('watermark')" id="nav-watermark" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
+                4. Estampar Texto
+            </button>
+            <button onclick="switchTab('rotate')" id="nav-rotate" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
+                5. Rotar Documento
+            </button>
+        </nav>
+    </aside>
 
-        <div class="p-8">
-            <!-- Dropzone -->
-            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer transition-all hover:bg-slate-50 group">
-                <input type="file" id="file-input" class="hidden" accept="application/pdf">
-                
-                <div class="flex justify-center mb-4 text-slate-400 group-hover:text-blue-500 transition-colors">
-                    <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
+    <!-- Main Content -->
+    <main class="flex-1 h-screen overflow-y-auto p-8">
+        
+        <!-- 1. Filtrar -->
+        <section id="tab-filter" class="tab-content active max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Filtrar Cuadruplicados</h2>
+            <p class="text-gray-600 mb-6">Sube un PDF. Conservará todas las páginas excepto aquellas que contengan la palabra "CUADRUPLICADO".</p>
+            <input type="file" id="file-filter" accept="application/pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4 border border-gray-300 rounded-md p-2">
+            <button onclick="processFilter()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow transition">Procesar y Descargar</button>
+            <p id="status-filter" class="mt-4 text-sm font-medium text-blue-600"></p>
+        </section>
+
+        <!-- 2. Unir -->
+        <section id="tab-merge" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Unir Archivos PDF</h2>
+            <p class="text-gray-600 mb-6">Selecciona múltiples archivos PDF para combinarlos en un solo documento final.</p>
+            <input type="file" id="file-merge" accept="application/pdf" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4 border border-gray-300 rounded-md p-2">
+            <button onclick="processMerge()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow transition">Unir y Descargar</button>
+            <p id="status-merge" class="mt-4 text-sm font-medium text-blue-600"></p>
+        </section>
+
+        <!-- 3. Dividir / Extraer -->
+        <section id="tab-split" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Extraer Rango de Páginas</h2>
+            <p class="text-gray-600 mb-6">Extrae un bloque de páginas específico de un documento grande.</p>
+            <input type="file" id="file-split" accept="application/pdf" class="block w-full mb-4 border border-gray-300 rounded-md p-2">
+            <div class="flex gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Página Inicio</label>
+                    <input type="number" id="split-start" value="1" min="1" class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-2">
                 </div>
-                <h3 class="text-lg font-semibold text-slate-700 mb-1">Selecciona o arrastra tu PDF</h3>
-                <p class="text-sm text-slate-500">Soporta facturas con original, duplicado y triplicado.</p>
-            </div>
-
-            <!-- Status & Loading Indicator -->
-            <div id="status-container" class="hidden mt-6 flex flex-col items-center justify-center p-4">
-                <svg class="w-8 h-8 text-blue-600 animate-spin-fast mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                <p id="status-text" class="text-sm font-medium text-slate-600">Analizando documento...</p>
-            </div>
-
-            <!-- Message Box (Error/Success) -->
-            <div id="message-box" class="hidden mt-6 p-4 rounded-xl text-sm font-medium text-center"></div>
-
-            <!-- Result Actions -->
-            <div id="result-container" class="hidden mt-6">
-                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
-                    <div class="flex items-center">
-                        <svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <p class="text-emerald-700 font-semibold">¡Procesamiento exitoso!</p>
-                    </div>
-                    <p id="result-details" class="text-emerald-600 text-sm mt-1 ml-7">Se encontraron X páginas originales.</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Página Fin</label>
+                    <input type="number" id="split-end" value="1" min="1" class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-2">
                 </div>
-                
-                <button id="download-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Descargar PDF Filtrado
-                </button>
-                
-                <button id="reset-btn" class="w-full mt-3 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 font-medium py-2.5 px-6 rounded-xl transition-colors">
-                    Procesar otro documento
-                </button>
             </div>
-        </div>
+            <button onclick="processSplit()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow transition">Extraer y Descargar</button>
+            <p id="status-split" class="mt-4 text-sm font-medium text-blue-600"></p>
+        </section>
+
+        <!-- 4. Estampar -->
+        <section id="tab-watermark" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Estampar Documento</h2>
+            <p class="text-gray-600 mb-6">Aplica un texto (ej. "APROBADO", "PROCESADO") sobre todas las páginas.</p>
+            <input type="file" id="file-watermark" accept="application/pdf" class="block w-full mb-4 border border-gray-300 rounded-md p-2">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Texto a estampar</label>
+                <input type="text" id="watermark-text" placeholder="Ej: AUDITADO 2026" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+            </div>
+            <button onclick="processWatermark()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow transition">Estampar y Descargar</button>
+            <p id="status-watermark" class="mt-4 text-sm font-medium text-blue-600"></p>
+        </section>
+
+        <!-- 5. Rotar -->
+        <section id="tab-rotate" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Rotar PDF</h2>
+            <p class="text-gray-600 mb-6">Gira todas las páginas 90 grados a la derecha.</p>
+            <input type="file" id="file-rotate" accept="application/pdf" class="block w-full mb-4 border border-gray-300 rounded-md p-2">
+            <button onclick="processRotate()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow transition">Rotar y Descargar</button>
+            <p id="status-rotate" class="mt-4 text-sm font-medium text-blue-600"></p>
+        </section>
+
     </main>
 
     <script>
-        // Configure PDF.js worker
-        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        // Configuración de PDF.js para leer texto
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        const PDFDocument = PDFLib.PDFDocument;
+        const rgb = PDFLib.rgb;
+        const degrees = PDFLib.degrees;
 
-        // UI Elements
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const statusContainer = document.getElementById('status-container');
-        const statusText = document.getElementById('status-text');
-        const messageBox = document.getElementById('message-box');
-        const resultContainer = document.getElementById('result-container');
-        const resultDetails = document.getElementById('result-details');
-        const downloadBtn = document.getElementById('download-btn');
-        const resetBtn = document.getElementById('reset-btn');
-
-        let generatedPdfBytes = null;
-        let originalFileName = "";
-
-        // Drag and drop event listeners
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // Lógica de Navegación (Tabs)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`nav-${tabId}`).classList.add('active');
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('drop-zone-active'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drop-zone-active'), false);
-        });
-
-        dropZone.addEventListener('drop', handleDrop, false);
-        dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-        
-        resetBtn.addEventListener('click', resetUI);
-        
-        downloadBtn.addEventListener('click', () => {
-            if (generatedPdfBytes) {
-                const blob = new Blob([generatedPdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = originalFileName.replace('.pdf', '_SIN_CUADRUPLICADOS.pdf');
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-        });
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
+        // Utilidad: Descargar Blob
+        function downloadBlob(uint8Array, filename) {
+            const blob = new Blob([uint8Array], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
-        function handleFiles(files) {
-            if (files.length === 0) return;
-            const file = files[0];
+        // --- 1. Herramienta: Filtrar Cuadruplicados ---
+        async function processFilter() {
+            const fileInput = document.getElementById('file-filter');
+            const status = document.getElementById('status-filter');
+            if (fileInput.files.length === 0) return alert('Por favor, selecciona un PDF.');
             
-            if (file.type !== 'application/pdf') {
-                showMessage("Por favor, sube un archivo PDF válido.", "error");
-                return;
+            status.textContent = 'Analizando textos del documento...';
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+
+            // Leer con PDF.js para buscar el texto
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfJsDoc = await loadingTask.promise;
+            const pagesToKeep = [];
+
+            for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+                const page = await pdfJsDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const text = textContent.items.map(item => item.str).join(' ').toUpperCase();
+                
+                // Conserva la página si NO dice cuadruplicado
+                if (!text.includes('CUADRUPLICADO')) {
+                    pagesToKeep.push(i - 1); // pdf-lib usa índice base 0
+                }
             }
 
-            originalFileName = file.name;
-            processPDF(file);
-        }
-
-        function showMessage(text, type) {
-            messageBox.textContent = text;
-            messageBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-blue-50', 'text-blue-700');
+            status.textContent = `Generando nuevo PDF con ${pagesToKeep.length} páginas...`;
             
-            if (type === "error") {
-                messageBox.classList.add('bg-red-50', 'text-red-700');
-            } else {
-                messageBox.classList.add('bg-blue-50', 'text-blue-700');
-            }
+            // Crear el nuevo PDF con pdf-lib
+            const originalPdf = await PDFDocument.load(arrayBuffer);
+            const newPdf = await PDFDocument.create();
+            const copiedPages = await newPdf.copyPages(originalPdf, pagesToKeep);
+            copiedPages.forEach(page => newPdf.addPage(page));
+
+            const pdfBytes = await newPdf.save();
+            downloadBlob(pdfBytes, file.name.replace('.pdf', '_FILTRADO.pdf'));
+            status.textContent = '¡Proceso terminado y archivo descargado!';
         }
 
-        function hideMessage() {
-            messageBox.classList.add('hidden');
-        }
+        // --- 2. Herramienta: Unir Archivos ---
+        async function processMerge() {
+            const fileInput = document.getElementById('file-merge');
+            const status = document.getElementById('status-merge');
+            if (fileInput.files.length < 2) return alert('Selecciona al menos 2 archivos PDF para unir.');
+            
+            status.textContent = 'Combinando archivos...';
+            const mergedPdf = await PDFDocument.create();
 
-        function resetUI() {
-            fileInput.value = "";
-            generatedPdfBytes = null;
-            originalFileName = "";
-            dropZone.classList.remove('hidden');
-            resultContainer.classList.add('hidden');
-            statusContainer.classList.add('hidden');
-            hideMessage();
-        }
-
-        async function processPDF(file) {
-            try {
-                // UI Update
-                dropZone.classList.add('hidden');
-                hideMessage();
-                statusContainer.classList.remove('hidden');
-                statusText.textContent = "Analizando el contenido del PDF...";
-
+            for (let file of fileInput.files) {
                 const arrayBuffer = await file.arrayBuffer();
-                
-                // 1. Parse with PDF.js to read text
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                const pagesToKeep = [];
-
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    statusText.textContent = `Analizando página ${i} de ${pdf.numPages}...`;
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    
-                    // Combine all text items on the page to a single string
-                    const pageText = textContent.items.map(item => item.str).join(' ').toUpperCase();
-                    
-                    // Conservamos TODAS las páginas EXCEPTO las que digan "CUADRUPLICADO"
-                    if (!pageText.includes('CUADRUPLICADO')) {
-                        
-                        // Keep track of the 0-based index for pdf-lib
-                        pagesToKeep.push(i - 1);
-                    }
-                }
-
-                if (pagesToKeep.length === 0) {
-                    statusContainer.classList.add('hidden');
-                    dropZone.classList.remove('hidden');
-                    showMessage("Todas las páginas son cuadruplicados o hubo un error al leerlas.", "error");
-                    return;
-                }
-
-                // 2. Manipulate PDF with pdf-lib
-                statusText.textContent = "Generando nuevo PDF...";
-                
-                const { PDFDocument } = window.PDFLib;
-                const originalPdfDoc = await PDFDocument.load(arrayBuffer);
-                const newPdfDoc = await PDFDocument.create();
-
-                // Copy selected pages
-                const copiedPages = await newPdfDoc.copyPages(originalPdfDoc, pagesToKeep);
-                copiedPages.forEach(page => newPdfDoc.addPage(page));
-
-                // Save to bytes
-                generatedPdfBytes = await newPdfDoc.save();
-
-                // UI Update: Success
-                statusContainer.classList.add('hidden');
-                resultContainer.classList.remove('hidden');
-                
-                if (pagesToKeep.length === 1) {
-                    resultDetails.textContent = `Se extrajo 1 página con éxito.`;
-                } else {
-                    resultDetails.textContent = `Se extrajeron ${pagesToKeep.length} páginas con éxito.`;
-                }
-
-            } catch (error) {
-                console.error("Error processing PDF:", error);
-                statusContainer.classList.add('hidden');
-                dropZone.classList.remove('hidden');
-                showMessage("Ocurrió un error al procesar el archivo. Asegúrate de que no esté encriptado.", "error");
+                const pdfToMerge = await PDFDocument.load(arrayBuffer);
+                const copiedPages = await mergedPdf.copyPages(pdfToMerge, pdfToMerge.getPageIndices());
+                copiedPages.forEach(page => mergedPdf.addPage(page));
             }
+
+            const pdfBytes = await mergedPdf.save();
+            downloadBlob(pdfBytes, 'Documentos_Unidos.pdf');
+            status.textContent = '¡Archivos unidos exitosamente!';
+        }
+
+        // --- 3. Herramienta: Dividir / Extraer ---
+        async function processSplit() {
+            const fileInput = document.getElementById('file-split');
+            const start = parseInt(document.getElementById('split-start').value);
+            const end = parseInt(document.getElementById('split-end').value);
+            const status = document.getElementById('status-split');
+            
+            if (fileInput.files.length === 0) return alert('Selecciona un PDF.');
+            if (start > end || start < 1) return alert('Rango de páginas inválido.');
+
+            status.textContent = 'Extrayendo páginas...';
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const originalPdf = await PDFDocument.load(arrayBuffer);
+            
+            const totalPages = originalPdf.getPageCount();
+            if (end > totalPages) return alert(`El documento solo tiene ${totalPages} páginas.`);
+
+            // Crear array de índices (base 0)
+            const pagesToExtract = [];
+            for (let i = start - 1; i <= end - 1; i++) pagesToExtract.push(i);
+
+            const newPdf = await PDFDocument.create();
+            const copiedPages = await newPdf.copyPages(originalPdf, pagesToExtract);
+            copiedPages.forEach(page => newPdf.addPage(page));
+
+            const pdfBytes = await newPdf.save();
+            downloadBlob(pdfBytes, file.name.replace('.pdf', `_pag_${start}_a_${end}.pdf`));
+            status.textContent = '¡Páginas extraídas!';
+        }
+
+        // --- 4. Herramienta: Estampar ---
+        async function processWatermark() {
+            const fileInput = document.getElementById('file-watermark');
+            const text = document.getElementById('watermark-text').value || 'COPIA';
+            const status = document.getElementById('status-watermark');
+            
+            if (fileInput.files.length === 0) return alert('Selecciona un PDF.');
+
+            status.textContent = 'Estampando documento...';
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+            
+            const pages = pdfDoc.getPages();
+            pages.forEach(page => {
+                const { width, height } = page.getSize();
+                page.drawText(text, {
+                    x: width / 4,
+                    y: height / 2,
+                    size: 60,
+                    color: rgb(0.9, 0.2, 0.2), // Rojo
+                    opacity: 0.4,
+                    rotate: degrees(45)
+                });
+            });
+
+            const pdfBytes = await pdfDoc.save();
+            downloadBlob(pdfBytes, file.name.replace('.pdf', '_ESTAMPADO.pdf'));
+            status.textContent = '¡Documento estampado!';
+        }
+
+        // --- 5. Herramienta: Rotar ---
+        async function processRotate() {
+            const fileInput = document.getElementById('file-rotate');
+            const status = document.getElementById('status-rotate');
+            if (fileInput.files.length === 0) return alert('Selecciona un PDF.');
+
+            status.textContent = 'Rotando páginas...';
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+            
+            const pages = pdfDoc.getPages();
+            pages.forEach(page => {
+                const currentRotation = page.getRotation().angle;
+                page.setRotation(degrees(currentRotation + 90));
+            });
+
+            const pdfBytes = await pdfDoc.save();
+            downloadBlob(pdfBytes, file.name.replace('.pdf', '_ROTADO.pdf'));
+            status.textContent = '¡Documento rotado!';
         }
     </script>
 </body>
