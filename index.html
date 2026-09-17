@@ -46,6 +46,9 @@
             <button onclick="switchTab('rotate')" id="nav-rotate" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
                 5. Rotar Documento
             </button>
+            <button onclick="switchTab('data')" id="nav-data" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">
+                6. Extraer y Editar Datos
+            </button>
         </nav>
     </aside>
 
@@ -111,6 +114,31 @@
             <p id="status-rotate" class="mt-4 text-sm font-medium text-blue-600"></p>
         </section>
 
+        <!-- 6. Extraer y Editar Datos -->
+        <section id="tab-data" class="tab-content max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Extractor y Corrector de Datos</h2>
+            <p class="text-gray-600 mb-6">Extrae el contenido de cada página del PDF, preséntalo en una tabla interactiva, corrige lo que necesites haciendo clic en los textos y expórtalo a CSV.</p>
+            <input type="file" id="file-data" accept="application/pdf" class="block w-full mb-4 border border-gray-300 rounded-md p-2">
+            <button onclick="processDataExtraction()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow transition mb-6">Extraer Datos a Tabla</button>
+            
+            <div id="table-container" class="hidden">
+                <div class="overflow-x-auto max-h-96 border border-gray-200 rounded-md mb-4 bg-gray-50">
+                    <table id="extracted-table" class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-100 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-28">Página</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">Contenido Detectado (Haz clic para editar)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white" id="table-body">
+                        </tbody>
+                    </table>
+                </div>
+                <button onclick="exportTableToCSV()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-md shadow transition">Exportar Tabla Corregida a CSV</button>
+            </div>
+            <p id="status-data" class="mt-4 text-sm font-medium text-blue-600"></p>
+        </section>
+
     </main>
 
     <script>
@@ -141,6 +169,11 @@
             URL.revokeObjectURL(url);
         }
 
+        // Escapar HTML seguro
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
         // --- 1. Herramienta: Filtrar Cuadruplicados ---
         async function processFilter() {
             const fileInput = document.getElementById('file-filter');
@@ -151,7 +184,6 @@
             const file = fileInput.files[0];
             const arrayBuffer = await file.arrayBuffer();
 
-            // Leer con PDF.js para buscar el texto
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdfJsDoc = await loadingTask.promise;
             const pagesToKeep = [];
@@ -161,22 +193,20 @@
                 const textContent = await page.getTextContent();
                 const text = textContent.items.map(item => item.str).join(' ').toUpperCase();
                 
-                // Conserva la página si NO dice cuadruplicado
                 if (!text.includes('CUADRUPLICADO')) {
-                    pagesToKeep.push(i - 1); // pdf-lib usa índice base 0
+                    pagesToKeep.push(i - 1);
                 }
             }
 
             status.textContent = `Generando nuevo PDF con ${pagesToKeep.length} páginas...`;
             
-            // Crear el nuevo PDF con pdf-lib
             const originalPdf = await PDFDocument.load(arrayBuffer);
             const newPdf = await PDFDocument.create();
             const copiedPages = await newPdf.copyPages(originalPdf, pagesToKeep);
             copiedPages.forEach(page => newPdf.addPage(page));
 
             const pdfBytes = await newPdf.save();
-            downloadBlob(pdfBytes, file.name.replace('.pdf', '_FILTRADO.pdf'));
+            downloadBlob(pdfBytes, file.name.replace('.pdf', '_SIN_CUADRUPLICADOS.pdf'));
             status.textContent = '¡Proceso terminado y archivo descargado!';
         }
 
@@ -219,7 +249,6 @@
             const totalPages = originalPdf.getPageCount();
             if (end > totalPages) return alert(`El documento solo tiene ${totalPages} páginas.`);
 
-            // Crear array de índices (base 0)
             const pagesToExtract = [];
             for (let i = start - 1; i <= end - 1; i++) pagesToExtract.push(i);
 
@@ -252,7 +281,7 @@
                     x: width / 4,
                     y: height / 2,
                     size: 60,
-                    color: rgb(0.9, 0.2, 0.2), // Rojo
+                    color: rgb(0.9, 0.2, 0.2),
                     opacity: 0.4,
                     rotate: degrees(45)
                 });
@@ -283,6 +312,67 @@
             const pdfBytes = await pdfDoc.save();
             downloadBlob(pdfBytes, file.name.replace('.pdf', '_ROTADO.pdf'));
             status.textContent = '¡Documento rotado!';
+        }
+
+        // --- 6. Herramienta: Extraer y Editar Datos ---
+        async function processDataExtraction() {
+            const fileInput = document.getElementById('file-data');
+            const status = document.getElementById('status-data');
+            const tableContainer = document.getElementById('table-container');
+            const tableBody = document.getElementById('table-body');
+            
+            if (fileInput.files.length === 0) return alert('Selecciona un PDF.');
+            
+            status.textContent = 'Leyendo estructura y extrayendo textos...';
+            tableBody.innerHTML = '';
+            
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfJsDoc = await loadingTask.promise;
+            
+            let rowCount = 0;
+            for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+                const page = await pdfJsDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const lineText = textContent.items.map(item => item.str).join(' ');
+                
+                if (lineText.trim().length > 0) {
+                    rowCount++;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-gray-500 font-medium">Pág ${i}</td>
+                        <td class="px-4 py-3 text-gray-800 outline-none focus:bg-blue-50 focus:ring-1 focus:ring-blue-400 rounded cursor-text" contenteditable="true">${escapeHtml(lineText)}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                }
+            }
+            
+            if (rowCount > 0) {
+                tableContainer.classList.remove('hidden');
+                status.textContent = `¡Datos extraídos! Se procesaron ${pdfJsDoc.numPages} páginas. Haz clic en cualquier texto de la tabla para editarlo antes de exportar.`;
+            } else {
+                status.textContent = 'No se encontró texto estructurado en el PDF.';
+            }
+        }
+
+        function exportTableToCSV() {
+            const rows = document.querySelectorAll('#extracted-table tr');
+            let csv = [];
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td, th');
+                let rowData = [];
+                cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
+                csv.push(rowData.join(','));
+            });
+            
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Datos_Extraidos_PDF.csv';
+            a.click();
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>
