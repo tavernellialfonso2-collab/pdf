@@ -910,11 +910,9 @@
             $('excel-table-wrap').classList.remove('hidden');
         }
 
-        function downloadExcel() {
-            if (!excelRows.length) return;
-            const data = excelRows.map(r => Object.fromEntries(EXCEL_COLS.map(([k, label]) => [label, r[k]])));
-            const ws = XLSX.utils.json_to_sheet(data);
-            // Formato moneda en la columna Importe y ancho de columnas
+        function buildSheet(rows) {
+            const data = rows.map(r => Object.fromEntries(EXCEL_COLS.map(([k, label]) => [label, r[k]])));
+            const ws = XLSX.utils.json_to_sheet(data, { header: EXCEL_COLS.map(([, l]) => l) });
             const impCol = EXCEL_COLS.findIndex(([k]) => k === 'importe');
             const range = XLSX.utils.decode_range(ws['!ref']);
             for (let R = 1; R <= range.e.r; R++) {
@@ -922,8 +920,22 @@
                 if (cell && typeof cell.v === 'number') { cell.t = 'n'; cell.z = '#,##0.00'; }
             }
             ws['!cols'] = EXCEL_COLS.map(([k]) => ({ wch: k === 'referencia' ? 24 : k === 'tipo' ? 18 : 12 }));
+            return ws;
+        }
+
+        function downloadExcel() {
+            if (!excelRows.length) return;
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Comprobantes');
+            // Una hoja por tipo, solo las que tengan filas.
+            const grupos = [
+                ['Notas de Credito', r => r.tipo === 'NOTA DE CREDITO'],
+                ['Notas de Debito', r => r.tipo === 'NOTA DE DEBITO'],
+                ['Facturas', r => r.tipo === 'FACTURA'],
+            ];
+            for (const [nombre, filtro] of grupos) {
+                const rows = excelRows.filter(filtro);
+                if (rows.length) XLSX.utils.book_append_sheet(wb, buildSheet(rows), nombre);
+            }
             const stamp = new Date().toISOString().slice(0, 10);
             XLSX.writeFile(wb, `Comprobantes_${stamp}.xlsx`);
         }
