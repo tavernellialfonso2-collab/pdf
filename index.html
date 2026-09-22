@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suite PDF - Herramientas de Procesamiento</title>
- 
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
- 
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .tab-content { display: none; }
@@ -29,7 +29,7 @@
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-gray-800">
- 
+
     <aside class="w-64 bg-gray-900 text-white flex flex-col">
         <div class="p-6 border-b border-gray-800">
             <h1 class="text-xl font-bold tracking-wider">SUITE PDF</h1>
@@ -41,12 +41,12 @@
             <button onclick="switchTab('split')" id="nav-split" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">3. Extraer Páginas</button>
             <button onclick="switchTab('watermark')" id="nav-watermark" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">4. Estampar Texto</button>
             <button onclick="switchTab('rotate')" id="nav-rotate" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">5. Rotar Documento</button>
-            <button onclick="switchTab('editor')" id="nav-editor" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">6. Editor Visual (Parche)</button>
+            <button onclick="switchTab('editor')" id="nav-editor" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">6. Editor de Texto</button>
         </nav>
     </aside>
- 
+
     <main class="flex-1 h-screen overflow-y-auto p-8">
- 
+
         <!-- 1. Filtrar -->
         <section id="tab-filter" class="tab-content active max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <h2 class="text-2xl font-bold mb-2">Filtrar Cuadruplicados</h2>
@@ -59,7 +59,7 @@
             <button onclick="processFilter()" id="btn-filter" class="btn">Procesar y Descargar</button>
             <p id="status-filter" class="mt-4 text-sm font-medium whitespace-pre-line"></p>
         </section>
- 
+
         <!-- 2. Unir -->
         <section id="tab-merge" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <h2 class="text-2xl font-bold mb-2">Unir Archivos PDF</h2>
@@ -69,7 +69,7 @@
             <button onclick="processMerge()" id="btn-merge" class="btn">Unir y Descargar</button>
             <p id="status-merge" class="mt-4 text-sm font-medium"></p>
         </section>
- 
+
         <!-- 3. Extraer -->
         <section id="tab-split" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <h2 class="text-2xl font-bold mb-2">Extraer Rango de Páginas</h2>
@@ -89,7 +89,7 @@
             <button onclick="processSplit()" id="btn-split" class="btn">Extraer y Descargar</button>
             <p id="status-split" class="mt-4 text-sm font-medium"></p>
         </section>
- 
+
         <!-- 4. Estampar -->
         <section id="tab-watermark" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <h2 class="text-2xl font-bold mb-2">Estampar Documento</h2>
@@ -108,7 +108,7 @@
             <button onclick="processWatermark()" id="btn-watermark" class="btn">Estampar y Descargar</button>
             <p id="status-watermark" class="mt-4 text-sm font-medium"></p>
         </section>
- 
+
         <!-- 5. Rotar -->
         <section id="tab-rotate" class="tab-content max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <h2 class="text-2xl font-bold mb-2">Rotar PDF</h2>
@@ -125,85 +125,109 @@
             <button onclick="processRotate()" id="btn-rotate" class="btn">Rotar y Descargar</button>
             <p id="status-rotate" class="mt-4 text-sm font-medium"></p>
         </section>
- 
-        <!-- 6. Editor Visual -->
-        <section id="tab-editor" class="tab-content max-w-5xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
-            <h2 class="text-2xl font-bold mb-2">Editor Visual (Parche y Corrección)</h2>
-            <p class="text-gray-600 mb-4">Subí un PDF, hacé clic sobre el error para ubicar el parche, ajustá los valores viendo la previsualización y agregá tantos parches como necesites antes de descargar.</p>
- 
+
+        <!-- 6. Editor de Texto -->
+        <section id="tab-editor" class="tab-content max-w-6xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Editor de Texto</h2>
+            <p class="text-gray-600 mb-4">Subí un PDF, hacé clic sobre el texto que querés corregir, escribí el nuevo valor y aplicalo. Repetí las veces que necesites y descargá.</p>
+
             <input type="file" id="file-editor" accept="application/pdf" onchange="loadPdfForEditing()" class="file-input">
- 
-            <div id="editor-workspace" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <label class="text-sm font-medium text-gray-700">Página:</label>
-                        <input type="number" id="edit-page-num" value="1" min="1" onchange="renderEditorPage()" class="w-20 border border-gray-300 rounded-md p-1.5">
+
+            <div id="editor-workspace" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-3">
+                    <div class="flex items-center gap-3 mb-2">
+                        <button onclick="changePage(-1)" class="btn btn-secondary px-3 py-1 text-sm">‹</button>
+                        <input type="number" id="edit-page-num" value="1" min="1" onchange="renderEditorPage()" class="w-16 border border-gray-300 rounded-md p-1 text-center">
                         <span id="edit-page-total" class="text-sm text-gray-500"></span>
+                        <button onclick="changePage(1)" class="btn btn-secondary px-3 py-1 text-sm">›</button>
+                        <span class="ml-auto text-xs text-gray-500">Zoom</span>
+                        <select id="edit-zoom" onchange="renderEditorPage()" class="border border-gray-300 rounded p-1 text-sm">
+                            <option value="1">100%</option>
+                            <option value="1.5" selected>150%</option>
+                            <option value="2">200%</option>
+                        </select>
                     </div>
-                    <p class="text-xs text-gray-500 mb-2">Clic en la previsualización = esquina inferior izquierda del parche.</p>
-                    <div class="border border-gray-300 rounded bg-gray-50 overflow-auto max-h-[600px] flex justify-center">
-                        <canvas id="pdf-canvas" class="cursor-crosshair shadow-sm"></canvas>
+                    <p class="text-xs text-gray-500 mb-2">Clic = seleccionar texto · Shift+clic = sumar otro fragmento a la selección (ej. importe con el símbolo separado).</p>
+                    <div class="border border-gray-300 rounded bg-gray-100 overflow-auto max-h-[75vh]">
+                        <canvas id="pdf-canvas" class="shadow-sm block mx-auto"></canvas>
                     </div>
                 </div>
- 
-                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 flex flex-col justify-between">
-                    <div class="space-y-3">
-                        <h3 class="font-bold text-gray-700 border-b pb-2">Datos del Parche</h3>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600">X (izquierda)</label>
-                                <input type="number" id="edit-x" value="100" oninput="drawPreview()" class="edit-field w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600">Y (altura)</label>
-                                <input type="number" id="edit-y" value="500" oninput="drawPreview()" class="edit-field w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600">Ancho parche</label>
-                                <input type="number" id="edit-w" value="150" oninput="drawPreview()" class="edit-field w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600">Alto parche</label>
-                                <input type="number" id="edit-h" value="20" oninput="drawPreview()" class="edit-field w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
-                            </div>
+
+                <div class="lg:col-span-2 bg-gray-50 p-5 rounded-lg border border-gray-200 flex flex-col gap-4">
+                    <div id="sel-empty" class="text-sm text-gray-500 italic">Hacé clic sobre un texto de la página para editarlo.</div>
+
+                    <div id="sel-form" class="hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600">Texto original</label>
+                            <div id="sel-original" class="w-full border border-gray-200 rounded p-1.5 text-sm bg-gray-100 font-mono break-all"></div>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-600">Texto corregido</label>
-                            <input type="text" id="edit-new-text" placeholder="Ej: $ 45.000,00" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1.5 text-sm bg-white font-medium">
+                            <label class="block text-xs font-semibold text-gray-600">Texto nuevo</label>
+                            <input type="text" id="edit-new-text" oninput="drawPreview()" class="w-full border border-blue-300 rounded p-1.5 text-sm bg-white font-medium">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="block text-xs font-semibold text-gray-600">Fuente</label>
-                                <select id="edit-font" class="w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
+                                <select id="edit-font" onchange="drawPreview()" class="w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
                                     <option value="Helvetica">Helvetica</option>
-                                    <option value="HelveticaBold">Helvetica Bold</option>
+                                    <option value="HelveticaBold">Helv. Bold</option>
+                                    <option value="HelveticaOblique">Helv. Italic</option>
                                     <option value="Courier">Courier</option>
+                                    <option value="CourierBold">Courier Bold</option>
                                     <option value="TimesRoman">Times</option>
+                                    <option value="TimesRomanBold">Times Bold</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-600">Tamaño letra</label>
-                                <input type="number" id="edit-font-size" value="10" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
+                                <label class="block text-xs font-semibold text-gray-600">Tamaño</label>
+                                <input type="number" id="edit-font-size" step="0.5" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600">Alinear</label>
+                                <select id="edit-align" onchange="drawPreview()" class="w-full border border-gray-300 rounded p-1.5 text-sm bg-white">
+                                    <option value="left">Izquierda</option>
+                                    <option value="right">Derecha</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="flex gap-2 pt-2">
-                            <button onclick="addPatch()" class="btn flex-1 text-sm">+ Agregar parche</button>
-                            <button onclick="undoPatch()" class="btn btn-secondary text-sm">Deshacer</button>
+
+                        <details class="text-xs">
+                            <summary class="cursor-pointer text-gray-600 font-semibold">Ajuste fino del parche</summary>
+                            <div class="grid grid-cols-4 gap-2 mt-2">
+                                <div><label class="block text-gray-600">X</label><input type="number" id="edit-x" step="0.5" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1 bg-white"></div>
+                                <div><label class="block text-gray-600">Y</label><input type="number" id="edit-y" step="0.5" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1 bg-white"></div>
+                                <div><label class="block text-gray-600">Ancho</label><input type="number" id="edit-w" step="0.5" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1 bg-white"></div>
+                                <div><label class="block text-gray-600">Alto</label><input type="number" id="edit-h" step="0.5" oninput="drawPreview()" class="w-full border border-gray-300 rounded p-1 bg-white"></div>
+                            </div>
+                            <p class="text-gray-500 mt-1">Coordenadas PDF (origen abajo-izquierda). El parche blanco tapa el texto viejo.</p>
+                        </details>
+
+                        <div class="flex gap-2">
+                            <button onclick="addPatch()" class="btn flex-1 text-sm">✔ Aplicar cambio</button>
+                            <button onclick="clearSelection()" class="btn btn-secondary text-sm">Cancelar</button>
                         </div>
-                        <p id="patch-count" class="text-xs text-gray-500">0 parches pendientes</p>
                     </div>
-                    <button onclick="applyPatches()" id="btn-editor" class="mt-6 btn w-full">Aplicar parches y Descargar PDF</button>
+
+                    <div class="border-t pt-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-sm font-bold text-gray-700">Cambios pendientes</h3>
+                            <span id="patch-count" class="text-xs text-gray-500">0</span>
+                        </div>
+                        <ul id="patch-list" class="text-xs divide-y max-h-40 overflow-auto border rounded bg-white"></ul>
+                    </div>
+
+                    <button onclick="applyPatches()" id="btn-editor" class="btn w-full mt-auto">Descargar PDF corregido</button>
                 </div>
             </div>
             <p id="status-editor" class="mt-4 text-sm font-medium"></p>
         </section>
- 
+
     </main>
- 
+
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
- 
+
         // ---------- Utilidades ----------
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -211,17 +235,17 @@
             document.getElementById(`tab-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
         }
- 
+
         function setStatus(id, msg, type = 'info') {
             const el = document.getElementById(id);
             el.className = `mt-4 text-sm font-medium whitespace-pre-line status-${type}`;
             el.textContent = msg;
         }
- 
+
         function outputName(original, suffix) {
             return original.replace(/\.pdf$/i, '') + suffix + '.pdf';
         }
- 
+
         function downloadBlob(bytes, filename) {
             const blob = new Blob([bytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
@@ -233,22 +257,22 @@
             document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
- 
+
         // pdf.js transfiere el ArrayBuffer al worker y lo deja vacío: siempre pasarle una copia.
         async function openWithPdfJs(buffer) {
             return pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
         }
- 
+
         async function openWithPdfLib(buffer) {
             return PDFDocument.load(buffer, { ignoreEncryption: true });
         }
- 
+
         function getFiles(inputId, min = 1) {
             const files = Array.from(document.getElementById(inputId).files);
             if (files.length < min) throw new Error(min === 1 ? 'Seleccioná un PDF.' : `Seleccioná al menos ${min} archivos.`);
             return files;
         }
- 
+
         // Envuelve cada herramienta: deshabilita botón, captura errores, muestra estado.
         async function runTool(name, fn) {
             const btn = document.getElementById(`btn-${name}`);
@@ -263,20 +287,20 @@
                 btn.disabled = false;
             }
         }
- 
+
         // ---------- 1. Filtrar ----------
         async function processFilter() {
             await runTool('filter', async (statusId) => {
                 const files = getFiles('file-filter');
                 const keyword = document.getElementById('filter-keyword').value.trim().toUpperCase();
                 if (!keyword) throw new Error('Ingresá la palabra clave.');
- 
+
                 const summary = [];
                 for (const [idx, file] of files.entries()) {
                     setStatus(statusId, `Analizando ${idx + 1}/${files.length}: ${file.name}`);
                     const buffer = await file.arrayBuffer();
                     const pdfJsDoc = await openWithPdfJs(buffer);
- 
+
                     const pagesToKeep = [];
                     for (let i = 1; i <= pdfJsDoc.numPages; i++) {
                         const page = await pdfJsDoc.getPage(i);
@@ -285,7 +309,7 @@
                         if (!text.includes(keyword)) pagesToKeep.push(i - 1);
                     }
                     const removed = pdfJsDoc.numPages - pagesToKeep.length;
- 
+
                     if (pagesToKeep.length === 0) {
                         summary.push(`⚠ ${file.name}: todas las páginas contienen "${keyword}", no se generó archivo.`);
                         continue;
@@ -295,7 +319,7 @@
                     } else {
                         summary.push(`✔ ${file.name}: ${removed} de ${pdfJsDoc.numPages} páginas eliminadas.`);
                     }
- 
+
                     const original = await openWithPdfLib(buffer);
                     const newPdf = await PDFDocument.create();
                     const copied = await newPdf.copyPages(original, pagesToKeep);
@@ -305,15 +329,15 @@
                 setStatus(statusId, summary.join('\n'), 'ok');
             });
         }
- 
+
         // ---------- 2. Unir ----------
         let mergeFiles = [];
- 
+
         function loadMergeList() {
             mergeFiles = Array.from(document.getElementById('file-merge').files);
             renderMergeList();
         }
- 
+
         function renderMergeList() {
             const ul = document.getElementById('merge-list');
             ul.innerHTML = '';
@@ -331,19 +355,19 @@
                 ul.appendChild(li);
             });
         }
- 
+
         function moveMerge(i, dir) {
             const j = i + dir;
             if (j < 0 || j >= mergeFiles.length) return;
             [mergeFiles[i], mergeFiles[j]] = [mergeFiles[j], mergeFiles[i]];
             renderMergeList();
         }
- 
+
         function removeMerge(i) {
             mergeFiles.splice(i, 1);
             renderMergeList();
         }
- 
+
         async function processMerge() {
             await runTool('merge', async (statusId) => {
                 if (mergeFiles.length < 2) throw new Error('Seleccioná al menos 2 archivos.');
@@ -358,7 +382,7 @@
                 setStatus(statusId, `¡Unidos ${mergeFiles.length} archivos (${merged.getPageCount()} páginas)!`, 'ok');
             });
         }
- 
+
         // ---------- 3. Extraer ----------
         async function loadSplitInfo() {
             const files = document.getElementById('file-split').files;
@@ -374,7 +398,7 @@
                 setStatus('status-split', 'No se pudo leer el archivo: ' + e.message, 'error');
             }
         }
- 
+
         async function processSplit() {
             await runTool('split', async (statusId) => {
                 const [file] = getFiles('file-split');
@@ -382,13 +406,13 @@
                 const end = parseInt(document.getElementById('split-end').value);
                 const original = await openWithPdfLib(await file.arrayBuffer());
                 const total = original.getPageCount();
- 
+
                 if (isNaN(start) || isNaN(end) || start < 1 || end < start || end > total) {
                     throw new Error(`Rango inválido. Debe ser entre 1 y ${total}, con inicio ≤ fin.`);
                 }
                 const indices = [];
                 for (let i = start - 1; i <= end - 1; i++) indices.push(i);
- 
+
                 const newPdf = await PDFDocument.create();
                 const copied = await newPdf.copyPages(original, indices);
                 copied.forEach(p => newPdf.addPage(p));
@@ -396,7 +420,7 @@
                 setStatus(statusId, `¡Extraídas ${indices.length} páginas!`, 'ok');
             });
         }
- 
+
         // ---------- 4. Estampar ----------
         async function processWatermark() {
             await runTool('watermark', async (statusId) => {
@@ -404,12 +428,12 @@
                 const text = document.getElementById('watermark-text').value.trim() || 'COPIA';
                 const size = parseFloat(document.getElementById('watermark-size').value) || 60;
                 setStatus(statusId, 'Estampando...');
- 
+
                 const pdfDoc = await openWithPdfLib(await file.arrayBuffer());
                 const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
                 const textWidth = font.widthOfTextAtSize(text, size);
                 const angle = Math.PI / 4;
- 
+
                 pdfDoc.getPages().forEach(page => {
                     const { width, height } = page.getSize();
                     // Centrar el texto rotado 45°: el origen del texto se desplaza media longitud sobre la diagonal.
@@ -426,7 +450,7 @@
                 setStatus(statusId, '¡Estampado!', 'ok');
             });
         }
- 
+
         // ---------- 5. Rotar ----------
         async function processRotate() {
             await runTool('rotate', async (statusId) => {
@@ -440,166 +464,312 @@
                 setStatus(statusId, `¡Rotado ${angle}°!`, 'ok');
             });
         }
- 
-        // ---------- 6. Editor Visual ----------
+
+        // ---------- 6. Editor de Texto ----------
         const editor = {
             buffer: null,        // ArrayBuffer original (intacto, para pdf-lib)
             pdfJsDoc: null,
             fileName: '',
-            viewport: null,      // viewport de la página renderizada
-            pageImage: null,     // ImageData de la página limpia, para redibujar sin re-renderizar
-            patches: [],         // { page, x, y, w, h, text, size, font }
+            viewport: null,
+            pageImage: null,     // página limpia para redibujar sin re-renderizar
+            items: [],           // fragmentos de texto de la página actual, con caja en coords PDF
+            hover: null,
+            selection: null,     // { items, text, x, y, w, h, baseX, baseY, fontSize }
+            patches: [],         // { page, x, y, w, h, text, size, font, align, baseY, origText }
         };
- 
+
         const canvas = document.getElementById('pdf-canvas');
         const ctx = canvas.getContext('2d');
-        const RENDER_SCALE = 1.5;
- 
-        function readPatchForm() {
-            return {
-                page: parseInt(document.getElementById('edit-page-num').value) || 1,
-                x: parseFloat(document.getElementById('edit-x').value) || 0,
-                y: parseFloat(document.getElementById('edit-y').value) || 0,
-                w: parseFloat(document.getElementById('edit-w').value) || 0,
-                h: parseFloat(document.getElementById('edit-h').value) || 0,
-                text: document.getElementById('edit-new-text').value,
-                size: parseFloat(document.getElementById('edit-font-size').value) || 10,
-                font: document.getElementById('edit-font').value,
-            };
+        const $ = id => document.getElementById(id);
+
+        // Métrica aproximada de fuentes: descendente y altura de línea relativas al tamaño.
+        const DESC = 0.22, LINE = 1.18, PAD = 1;
+
+        function cssFont(fontKey, sizePx) {
+            const fam = fontKey.startsWith('Courier') ? 'monospace' : fontKey.startsWith('Times') ? 'serif' : 'sans-serif';
+            const bold = fontKey.includes('Bold') ? 'bold ' : '';
+            const ital = fontKey.includes('Oblique') ? 'italic ' : '';
+            return `${ital}${bold}${sizePx}px ${fam}`;
         }
- 
+
+        // Deduce la fuente estándar más parecida según el nombre de fuente del PDF.
+        function guessFont(fontName = '') {
+            const n = fontName.toLowerCase();
+            const bold = /bold|black|heavy|semibold/.test(n);
+            const ital = /italic|oblique/.test(n);
+            if (/courier|mono/.test(n)) return bold ? 'CourierBold' : 'Courier';
+            if (/times|serif|georgia|garamond|book/.test(n)) return bold ? 'TimesRomanBold' : 'TimesRoman';
+            if (bold) return 'HelveticaBold';
+            if (ital) return 'HelveticaOblique';
+            return 'Helvetica';
+        }
+
         async function loadPdfForEditing() {
-            const files = document.getElementById('file-editor').files;
+            const files = $('file-editor').files;
             if (!files.length) return;
             try {
                 editor.fileName = files[0].name;
                 editor.buffer = await files[0].arrayBuffer();
                 editor.pdfJsDoc = await openWithPdfJs(editor.buffer);
                 editor.patches = [];
-                updatePatchCount();
- 
-                document.getElementById('editor-workspace').classList.remove('hidden');
-                const pageInput = document.getElementById('edit-page-num');
-                pageInput.max = editor.pdfJsDoc.numPages;
-                pageInput.value = 1;
-                document.getElementById('edit-page-total').textContent = `de ${editor.pdfJsDoc.numPages}`;
+                editor.selection = null;
+                renderPatchList();
+                $('editor-workspace').classList.remove('hidden');
+                $('edit-page-num').max = editor.pdfJsDoc.numPages;
+                $('edit-page-num').value = 1;
+                $('edit-page-total').textContent = `/ ${editor.pdfJsDoc.numPages}`;
                 setStatus('status-editor', '');
                 await renderEditorPage();
             } catch (e) {
                 setStatus('status-editor', 'No se pudo abrir el PDF: ' + e.message, 'error');
             }
         }
- 
+
+        function changePage(dir) {
+            const inp = $('edit-page-num');
+            inp.value = (parseInt(inp.value) || 1) + dir;
+            renderEditorPage();
+        }
+
         async function renderEditorPage() {
             if (!editor.pdfJsDoc) return;
-            const pageInput = document.getElementById('edit-page-num');
-            let pageNum = parseInt(pageInput.value) || 1;
-            pageNum = Math.min(Math.max(pageNum, 1), editor.pdfJsDoc.numPages);
-            pageInput.value = pageNum;
- 
+            const inp = $('edit-page-num');
+            const pageNum = Math.min(Math.max(parseInt(inp.value) || 1, 1), editor.pdfJsDoc.numPages);
+            inp.value = pageNum;
+            clearSelection(false);
+
             const page = await editor.pdfJsDoc.getPage(pageNum);
-            editor.viewport = page.getViewport({ scale: RENDER_SCALE });
+            const scale = parseFloat($('edit-zoom').value) || 1.5;
+            editor.viewport = page.getViewport({ scale });
             canvas.width = editor.viewport.width;
             canvas.height = editor.viewport.height;
             await page.render({ canvasContext: ctx, viewport: editor.viewport }).promise;
             editor.pageImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // Fragmentos de texto con su caja en coordenadas PDF.
+            const content = await page.getTextContent();
+            editor.items = content.items
+                .filter(it => it.str && it.str.trim() && it.width > 0)
+                .map(it => {
+                    const [a, b, c, d, e, f] = it.transform;
+                    const fontSize = Math.hypot(c, d) || it.height;
+                    const style = content.styles[it.fontName] || {};
+                    return {
+                        str: it.str,
+                        fontSize,
+                        baseX: e, baseY: f,
+                        x: e, y: f - fontSize * DESC,
+                        w: it.width, h: fontSize * LINE,
+                        fontName: style.fontFamily || it.fontName || '',
+                    };
+                });
             drawPreview();
         }
- 
-        // Clic → coordenadas PDF. convertToPdfPoint resuelve rotación y offset de la página;
-        // el factor rect corrige si el canvas está escalado por CSS.
-        canvas.addEventListener('click', (event) => {
-            if (!editor.viewport) return;
+
+        // ---- coordenadas ----
+        function eventToPdf(event) {
             const rect = canvas.getBoundingClientRect();
-            const xCanvas = (event.clientX - rect.left) * (canvas.width / rect.width);
-            const yCanvas = (event.clientY - rect.top) * (canvas.height / rect.height);
-            const [pdfX, pdfY] = editor.viewport.convertToPdfPoint(xCanvas, yCanvas);
-            document.getElementById('edit-x').value = Math.round(pdfX);
-            document.getElementById('edit-y').value = Math.round(pdfY);
-            drawPreview();
+            const xC = (event.clientX - rect.left) * (canvas.width / rect.width);
+            const yC = (event.clientY - rect.top) * (canvas.height / rect.height);
+            return editor.viewport.convertToPdfPoint(xC, yC);
+        }
+
+        function pdfRectToCanvas(r) {
+            const [x1, y1] = editor.viewport.convertToViewportPoint(r.x, r.y);
+            const [x2, y2] = editor.viewport.convertToViewportPoint(r.x + r.w, r.y + r.h);
+            return { left: Math.min(x1, x2), top: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+        }
+
+        function itemAt(px, py) {
+            // El más chico que contenga el punto (evita agarrar un bloque grande sobre uno chico).
+            let best = null;
+            for (const it of editor.items) {
+                if (px >= it.x && px <= it.x + it.w && py >= it.y && py <= it.y + it.h) {
+                    if (!best || it.w * it.h < best.w * best.h) best = it;
+                }
+            }
+            return best;
+        }
+
+        // ---- selección ----
+        canvas.addEventListener('mousemove', (ev) => {
+            if (!editor.viewport) return;
+            const [px, py] = eventToPdf(ev);
+            const it = itemAt(px, py);
+            if (it !== editor.hover) { editor.hover = it; drawPreview(); }
+            canvas.style.cursor = it ? 'pointer' : 'default';
         });
- 
-        // Dibuja un rectángulo PDF (x,y = esquina inferior izquierda) sobre el canvas.
-        function drawRectOnCanvas(p, fill, stroke) {
-            const [x1, y1] = editor.viewport.convertToViewportPoint(p.x, p.y);
-            const [x2, y2] = editor.viewport.convertToViewportPoint(p.x + p.w, p.y + p.h);
-            const left = Math.min(x1, x2), top = Math.min(y1, y2);
-            const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
-            ctx.fillStyle = fill;
-            ctx.fillRect(left, top, w, h);
-            ctx.strokeStyle = stroke;
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(left, top, w, h);
+        canvas.addEventListener('mouseleave', () => { editor.hover = null; drawPreview(); });
+
+        canvas.addEventListener('click', (ev) => {
+            if (!editor.viewport) return;
+            const [px, py] = eventToPdf(ev);
+            const it = itemAt(px, py);
+            if (!it) return;
+            let items;
+            if (ev.shiftKey && editor.selection) {
+                if (editor.selection.items.includes(it)) return;
+                items = [...editor.selection.items, it].sort((a, b) => a.x - b.x);
+            } else {
+                items = [it];
+            }
+            selectItems(items);
+        });
+
+        function selectItems(items) {
+            const x = Math.min(...items.map(i => i.x));
+            const y = Math.min(...items.map(i => i.y));
+            const right = Math.max(...items.map(i => i.x + i.w));
+            const top = Math.max(...items.map(i => i.y + i.h));
+            const first = items[0];
+            const text = items.map(i => i.str).join('');
+            editor.selection = { items, text, x, y, w: right - x, h: top - y, baseX: first.baseX, baseY: first.baseY, fontSize: first.fontSize };
+
+            $('sel-empty').classList.add('hidden');
+            $('sel-form').classList.remove('hidden');
+            $('sel-original').textContent = text;
+            $('edit-new-text').value = text;
+            $('edit-font').value = guessFont(first.fontName);
+            $('edit-font-size').value = +first.fontSize.toFixed(1);
+            // Números / importes: alineación derecha por defecto.
+            $('edit-align').value = /^[\s$€.,\-0-9%]+$/.test(text) ? 'right' : 'left';
+            $('edit-x').value = +x.toFixed(1);
+            $('edit-y').value = +y.toFixed(1);
+            $('edit-w').value = +(right - x).toFixed(1);
+            $('edit-h').value = +(top - y).toFixed(1);
+            $('edit-new-text').focus();
+            $('edit-new-text').select();
+            drawPreview();
+        }
+
+        function clearSelection(redraw = true) {
+            editor.selection = null;
+            $('sel-form').classList.add('hidden');
+            $('sel-empty').classList.remove('hidden');
+            if (redraw) drawPreview();
+        }
+
+        function readPatchForm() {
+            const s = editor.selection;
+            return {
+                page: parseInt($('edit-page-num').value) || 1,
+                x: parseFloat($('edit-x').value), y: parseFloat($('edit-y').value),
+                w: parseFloat($('edit-w').value), h: parseFloat($('edit-h').value),
+                text: $('edit-new-text').value,
+                size: parseFloat($('edit-font-size').value) || s.fontSize,
+                font: $('edit-font').value,
+                align: $('edit-align').value,
+                baseY: s.baseY,
+                origText: s.text,
+            };
+        }
+
+        // Si el texto nuevo es más ancho que el parche, el parche crece hacia el lado de la alineación.
+        function fitRect(p, textW) {
+            let x = p.x, w = p.w;
+            if (textW + PAD * 2 > w) {
+                if (p.align === 'right') x = x + w - (textW + PAD * 2);
+                w = textW + PAD * 2;
+            }
+            const tx = p.align === 'right' ? x + w - PAD - textW : x + PAD;
+            return { x, w, tx };
+        }
+
+        // ---- dibujo ----
+        function drawPatchOnCanvas(p, fill, stroke) {
+            const scale = editor.viewport.scale;
+            ctx.font = cssFont(p.font, p.size * scale);
+            const textW = p.text ? ctx.measureText(p.text).width / scale : 0;
+            const { x, w, tx } = fitRect(p, textW);
+            const c = pdfRectToCanvas({ x, y: p.y, w, h: p.h });
+            ctx.fillStyle = fill; ctx.fillRect(c.left, c.top, c.w, c.h);
+            ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.strokeRect(c.left, c.top, c.w, c.h);
             if (p.text) {
+                const [cx, cy] = editor.viewport.convertToViewportPoint(tx, p.baseY);
                 ctx.fillStyle = '#000';
-                ctx.font = `${p.size * RENDER_SCALE}px ${p.font.startsWith('Courier') ? 'monospace' : p.font.startsWith('Times') ? 'serif' : 'sans-serif'}`;
-                const [tx, ty] = editor.viewport.convertToViewportPoint(p.x + 2, p.y + 2);
-                ctx.fillText(p.text, tx, ty);
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText(p.text, cx, cy);
             }
         }
- 
+
         function drawPreview() {
             if (!editor.pageImage) return;
             ctx.putImageData(editor.pageImage, 0, 0);
-            const current = readPatchForm();
-            editor.patches
-                .filter(p => p.page === current.page)
-                .forEach(p => drawRectOnCanvas(p, 'rgba(255,255,255,0.95)', '#16a34a'));
-            drawRectOnCanvas(current, 'rgba(59,130,246,0.25)', '#2563eb');
+            const page = parseInt($('edit-page-num').value) || 1;
+
+            editor.patches.filter(p => p.page === page)
+                .forEach(p => drawPatchOnCanvas(p, 'rgba(255,255,255,1)', '#16a34a'));
+
+            if (editor.hover && !(editor.selection && editor.selection.items.includes(editor.hover))) {
+                const c = pdfRectToCanvas(editor.hover);
+                ctx.fillStyle = 'rgba(59,130,246,0.15)'; ctx.fillRect(c.left, c.top, c.w, c.h);
+            }
+            if (editor.selection) {
+                drawPatchOnCanvas(readPatchForm(), 'rgba(255,255,255,0.92)', '#2563eb');
+            }
         }
- 
-        function updatePatchCount() {
-            const n = editor.patches.length;
-            document.getElementById('patch-count').textContent = `${n} parche${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`;
+
+        // ---- parches ----
+        function renderPatchList() {
+            const ul = $('patch-list');
+            ul.innerHTML = '';
+            $('patch-count').textContent = editor.patches.length;
+            editor.patches.forEach((p, i) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between px-2 py-1';
+                const esc = t => t.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+                li.innerHTML = `<span class="truncate"><span class="text-gray-400">p.${p.page}</span> <s class="text-gray-400">${esc(p.origText)}</s> → <b>${p.text ? esc(p.text) : '(borrar)'}</b></span>
+                    <button onclick="removePatch(${i})" class="ml-2 text-red-600 hover:text-red-800">✕</button>`;
+                ul.appendChild(li);
+            });
         }
- 
+
         function addPatch() {
-            if (!editor.buffer) return setStatus('status-editor', 'Subí un archivo primero.', 'warn');
-            const p = readPatchForm();
-            if (p.w <= 0 || p.h <= 0) return setStatus('status-editor', 'Ancho y alto deben ser mayores a 0.', 'warn');
-            editor.patches.push(p);
-            updatePatchCount();
-            setStatus('status-editor', `Parche agregado en página ${p.page}.`, 'ok');
+            if (!editor.selection) return;
+            editor.patches.push(readPatchForm());
+            renderPatchList();
+            clearSelection();
+            setStatus('status-editor', 'Cambio agregado. Seguí editando o descargá.', 'ok');
+        }
+
+        function removePatch(i) {
+            editor.patches.splice(i, 1);
+            renderPatchList();
             drawPreview();
         }
- 
-        function undoPatch() {
-            if (!editor.patches.length) return;
-            const p = editor.patches.pop();
-            updatePatchCount();
-            setStatus('status-editor', `Parche de página ${p.page} eliminado.`, 'warn');
-            drawPreview();
-        }
- 
+
         async function applyPatches() {
             await runTool('editor', async (statusId) => {
                 if (!editor.buffer) throw new Error('Subí un archivo primero.');
-                // Si no agregó ninguno, se aplica el que está en el formulario.
-                const patches = editor.patches.length ? editor.patches : [readPatchForm()];
-                setStatus(statusId, `Aplicando ${patches.length} parche(s)...`);
- 
+                const patches = [...editor.patches];
+                if (editor.selection) patches.push(readPatchForm()); // incluye lo que quedó sin "Aplicar"
+                if (!patches.length) throw new Error('No hay cambios para aplicar.');
+                setStatus(statusId, `Aplicando ${patches.length} cambio(s)...`);
+
                 const pdfDoc = await openWithPdfLib(editor.buffer);
                 const pages = pdfDoc.getPages();
                 const fontCache = {};
- 
+
                 for (const p of patches) {
                     const page = pages[p.page - 1];
                     if (!page) throw new Error(`La página ${p.page} no existe.`);
-                    page.drawRectangle({ x: p.x, y: p.y, width: p.w, height: p.h, color: rgb(1, 1, 1) });
+                    if (!fontCache[p.font]) fontCache[p.font] = await pdfDoc.embedFont(StandardFonts[p.font]);
+                    const font = fontCache[p.font];
+
+                    let textW = 0;
+                    try { textW = p.text ? font.widthOfTextAtSize(p.text, p.size) : 0; }
+                    catch { throw new Error(`"${p.text}" tiene caracteres que la fuente ${p.font} no soporta.`); }
+
+                    const { x, w, tx } = fitRect(p, textW);
+                    page.drawRectangle({ x, y: p.y, width: w, height: p.h, color: rgb(1, 1, 1) });
                     if (p.text) {
-                        if (!fontCache[p.font]) fontCache[p.font] = await pdfDoc.embedFont(StandardFonts[p.font]);
-                        try {
-                            page.drawText(p.text, { x: p.x + 2, y: p.y + 2, size: p.size, font: fontCache[p.font], color: rgb(0, 0, 0) });
-                        } catch (e) {
-                            throw new Error(`El texto "${p.text}" tiene caracteres que la fuente ${p.font} no soporta.`);
-                        }
+                        page.drawText(p.text, { x: tx, y: p.baseY, size: p.size, font, color: rgb(0, 0, 0) });
                     }
                 }
                 downloadBlob(await pdfDoc.save(), outputName(editor.fileName, '_EDITADO'));
-                setStatus(statusId, `¡${patches.length} parche(s) aplicado(s) y archivo descargado!`, 'ok');
+                setStatus(statusId, `¡${patches.length} cambio(s) aplicado(s) y archivo descargado!`, 'ok');
             });
         }
     </script>
 </body>
 </html>
- 
