@@ -231,6 +231,7 @@
             <input type="file" id="file-excel" accept="application/pdf" multiple class="file-input">
             <div class="flex gap-3 items-center mb-4">
                 <button onclick="processExcel()" id="btn-excel" class="btn">Analizar</button>
+                <label class="text-sm text-gray-700 flex items-center gap-1"><input type="checkbox" id="excel-solo-notas" checked> Solo notas de crédito/débito</label>
                 <button onclick="downloadExcel()" id="btn-excel-download" class="btn btn-secondary" disabled>Descargar Excel</button>
                 <span id="excel-summary" class="text-sm text-gray-600"></span>
             </div>
@@ -796,9 +797,8 @@
 
         // ---------- 7. Comprobantes a Excel ----------
         const EXCEL_COLS = [
-            ['archivo', 'Archivo'], ['empresa', 'Empresa'], ['tipo', 'Tipo'], ['letra', 'Letra'],
-            ['puntoVenta', 'Pto. Venta'], ['numero', 'Número'], ['fecha', 'Fecha'],
-            ['importe', 'Importe'], ['referencia', 'Referencia'], ['motivo', 'Motivo'], ['paginas', 'Páginas'],
+            ['empresa', 'Empresa'], ['tipo', 'Tipo'], ['puntoVenta', 'Pto. Venta'],
+            ['numero', 'Número'], ['importe', 'Importe'], ['referencia', 'Referencia'],
         ];
         let excelRows = [];
 
@@ -881,6 +881,8 @@
                     }
                     excelRows.push(...parseDocuments(pages, file.name));
                 }
+                if ($('excel-solo-notas').checked) excelRows = excelRows.filter(r => r.tipo !== 'FACTURA');
+                excelRows.sort((a, b) => a.empresa.localeCompare(b.empresa));
                 if (!excelRows.length) throw new Error('No se detectó ningún comprobante. Verificá que el PDF tenga texto (no sea escaneado).');
                 renderExcelTable();
                 const fact = excelRows.filter(r => r.tipo === 'FACTURA');
@@ -919,7 +921,7 @@
                 const cell = ws[XLSX.utils.encode_cell({ r: R, c: impCol })];
                 if (cell && typeof cell.v === 'number') { cell.t = 'n'; cell.z = '#,##0.00'; }
             }
-            ws['!cols'] = EXCEL_COLS.map(([k]) => ({ wch: k === 'archivo' ? 40 : k === 'referencia' ? 24 : k === 'tipo' ? 18 : 12 }));
+            ws['!cols'] = EXCEL_COLS.map(([k]) => ({ wch: k === 'referencia' ? 24 : k === 'tipo' ? 18 : 12 }));
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Comprobantes');
             const stamp = new Date().toISOString().slice(0, 10);
