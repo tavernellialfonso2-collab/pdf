@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
@@ -42,6 +43,7 @@
             <button onclick="switchTab('watermark')" id="nav-watermark" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">4. Estampar Texto</button>
             <button onclick="switchTab('rotate')" id="nav-rotate" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">5. Rotar Documento</button>
             <button onclick="switchTab('editor')" id="nav-editor" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">6. Editor de Texto</button>
+            <button onclick="switchTab('excel')" id="nav-excel" class="nav-item w-full text-left px-6 py-3 hover:bg-gray-800 transition-colors">7. Comprobantes a Excel</button>
         </nav>
     </aside>
 
@@ -220,6 +222,27 @@
                 </div>
             </div>
             <p id="status-editor" class="mt-4 text-sm font-medium"></p>
+        </section>
+
+        <!-- 7. Comprobantes a Excel -->
+        <section id="tab-excel" class="tab-content max-w-6xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-2">Comprobantes a Excel</h2>
+            <p class="text-gray-600 mb-6">Subí uno o varios PDF de facturación (Danone, Mastellone). Detecta cada comprobante, ignora las copias (duplicado, triplicado, cuadruplicado) y arma una planilla con empresa, tipo, punto de venta, número, importe y referencia.</p>
+            <input type="file" id="file-excel" accept="application/pdf" multiple class="file-input">
+            <div class="flex gap-3 items-center mb-4">
+                <button onclick="processExcel()" id="btn-excel" class="btn">Analizar</button>
+                <button onclick="downloadExcel()" id="btn-excel-download" class="btn btn-secondary" disabled>Descargar Excel</button>
+                <span id="excel-summary" class="text-sm text-gray-600"></span>
+            </div>
+            <div id="excel-table-wrap" class="hidden overflow-auto max-h-[60vh] border rounded">
+                <table class="min-w-full text-xs">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr id="excel-head"></tr>
+                    </thead>
+                    <tbody id="excel-body" class="divide-y"></tbody>
+                </table>
+            </div>
+            <p id="status-excel" class="mt-4 text-sm font-medium"></p>
         </section>
 
     </main>
@@ -769,6 +792,138 @@
                 downloadBlob(await pdfDoc.save(), outputName(editor.fileName, '_EDITADO'));
                 setStatus(statusId, `¡${patches.length} cambio(s) aplicado(s) y archivo descargado!`, 'ok');
             });
+        }
+
+        // ---------- 7. Comprobantes a Excel ----------
+        const EXCEL_COLS = [
+            ['archivo', 'Archivo'], ['empresa', 'Empresa'], ['tipo', 'Tipo'], ['letra', 'Letra'],
+            ['puntoVenta', 'Pto. Venta'], ['numero', 'Número'], ['fecha', 'Fecha'],
+            ['importe', 'Importe'], ['referencia', 'Referencia'], ['motivo', 'Motivo'], ['paginas', 'Páginas'],
+        ];
+        let excelRows = [];
+
+        // Reconstruye las líneas de una página agrupando fragmentos por coordenada Y.
+        async function pageToLines(page) {
+            const content = await page.getTextContent();
+            const rows = new Map();
+            for (const it of content.items) {
+                if (!it.str || !it.str.trim()) continue;
+                const y = Math.round(it.transform[5] / 3) * 3; // tolerancia de 3pt
+                if (!rows.has(y)) rows.set(y, []);
+                rows.get(y).push({ x: it.transform[4], str: it.str });
+            }
+            return [...rows.entries()]
+                .sort((a, b) => b[0] - a[0])
+                .map(([, items]) => items.sort((a, b) => a.x - b.x).map(i => i.str).join(' ').replace(/\s+/g, ' ').trim());
+        }
+
+        function normalizeCompany(line) {
+            const n = line.toUpperCase();
+            if (n.includes('DANONE')) return 'DANONE';
+            if (n.includes('MASTELLONE')) return 'MASTELLONE';
+            return line.trim();
+        }
+
+        function parseImporte(s) {
+            return parseFloat(s.replace(/[^0-9,.\-]/g, '').replace(/\./g, '').replace(',', '.'));
+        }
+
+        // Recibe [{lines:[...]}, ...] de todas las páginas de un archivo y devuelve un registro por comprobante.
+        function parseDocuments(pages, archivo) {
+            const docs = new Map();
+            const order = [];
+            let current = null;
+            const headRe = /(FACTURA|NOTA DE CR[EÉ]DITO|NOTA DE D[EÉ]BITO)\s*([A-Z])?\s*N[°º]?\s*(\d+)\s+(\d+)/i;
+
+            pages.forEach((lines, idx) => {
+                const head = lines.find(l => headRe.test(l));
+                if (head) {
+                    const m = head.match(headRe);
+                    const raw = m[1].toUpperCase();
+                    const tipo = raw.startsWith('FACTURA') ? 'FACTURA' : raw.includes('CR') ? 'NOTA DE CREDITO' : 'NOTA DE DEBITO';
+                    const key = `${tipo}|${m[3]}|${m[4]}`;
+                    if (!docs.has(key)) {
+                        const companyLine = lines.find(l => /S\.?A\.?$|S\.?R\.?L\.?$|DANONE|MASTELLONE/i.test(l)) || lines[0] || '';
+                        docs.set(key, {
+                            archivo, empresa: normalizeCompany(companyLine), tipo, letra: m[2] || '',
+                            puntoVenta: m[3], numero: m[4],
+                            fecha: '', importe: null, referencia: '', motivo: '', paginas: [],
+                        });
+                        order.push(key);
+                    }
+                    current = docs.get(key);
+                }
+                if (!current) return;
+                current.paginas.push(idx + 1);
+                for (const l of lines) {
+                    let m;
+                    if (!current.fecha && (m = l.match(/FECHA DOCUMENTO:?\s*(\d{2}\/\d{2}\/\d{4})/))) current.fecha = m[1];
+                    if ((m = l.match(/IMPORTE TOTAL\s*\$?\s*([\d.]+,\d{2})/))) current.importe = parseImporte(m[1]);
+                    if (!current.referencia && (m = l.match(/\bREFERENCIA\s+([0-9A-Z]+)/))) current.referencia = m[1];
+                    if (!current.referencia && (m = l.match(/\bO\.?\s?C\.?\s+(\d+)/))) current.referencia = m[1];
+                    if (!current.motivo && (m = l.match(/DESC\.?\s*MOTIVO:?\s*(.+)/))) current.motivo = m[1].trim();
+                }
+            });
+            return order.map(k => docs.get(k)).map(d => ({ ...d, paginas: `${d.paginas[0]}-${d.paginas[d.paginas.length - 1]}` }));
+        }
+
+        async function processExcel() {
+            await runTool('excel', async (statusId) => {
+                const files = getFiles('file-excel');
+                excelRows = [];
+                $('btn-excel-download').disabled = true;
+                for (const [fi, file] of files.entries()) {
+                    const pdfJsDoc = await openWithPdfJs(await file.arrayBuffer());
+                    const pages = [];
+                    for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+                        setStatus(statusId, `Leyendo ${file.name} (${fi + 1}/${files.length}) — página ${i}/${pdfJsDoc.numPages}`);
+                        pages.push(await pageToLines(await pdfJsDoc.getPage(i)));
+                    }
+                    excelRows.push(...parseDocuments(pages, file.name));
+                }
+                if (!excelRows.length) throw new Error('No se detectó ningún comprobante. Verificá que el PDF tenga texto (no sea escaneado).');
+                renderExcelTable();
+                const fact = excelRows.filter(r => r.tipo === 'FACTURA');
+                const nc = excelRows.filter(r => r.tipo === 'NOTA DE CREDITO');
+                const nd = excelRows.filter(r => r.tipo === 'NOTA DE DEBITO');
+                const sum = arr => arr.reduce((a, r) => a + (r.importe || 0), 0);
+                const fmt = n => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                $('excel-summary').textContent = `${excelRows.length} comprobantes · Facturas ${fact.length} ($${fmt(sum(fact))}) · NC ${nc.length} ($${fmt(sum(nc))}) · ND ${nd.length} ($${fmt(sum(nd))})`;
+                const faltantes = excelRows.filter(r => r.importe == null || !r.referencia).length;
+                setStatus(statusId, faltantes ? `Listo, pero ${faltantes} comprobante(s) sin importe o referencia (marcados en rojo).` : '¡Listo! Revisá la tabla y descargá.', faltantes ? 'warn' : 'ok');
+                $('btn-excel-download').disabled = false;
+            });
+        }
+
+        function renderExcelTable() {
+            $('excel-head').innerHTML = EXCEL_COLS.map(([, label]) => `<th class="px-2 py-1 text-left font-semibold">${label}</th>`).join('');
+            $('excel-body').innerHTML = excelRows.map(r => {
+                const bad = r.importe == null || !r.referencia;
+                return `<tr class="${bad ? 'bg-red-50' : ''}">` + EXCEL_COLS.map(([k]) => {
+                    let v = r[k];
+                    if (k === 'importe') v = v == null ? '—' : v.toLocaleString('es-AR', { minimumFractionDigits: 2 });
+                    return `<td class="px-2 py-1 whitespace-nowrap ${k === 'importe' ? 'text-right' : ''}">${v ?? ''}</td>`;
+                }).join('') + '</tr>';
+            }).join('');
+            $('excel-table-wrap').classList.remove('hidden');
+        }
+
+        function downloadExcel() {
+            if (!excelRows.length) return;
+            const data = excelRows.map(r => Object.fromEntries(EXCEL_COLS.map(([k, label]) => [label, r[k]])));
+            const ws = XLSX.utils.json_to_sheet(data);
+            // Formato moneda en la columna Importe y ancho de columnas
+            const impCol = EXCEL_COLS.findIndex(([k]) => k === 'importe');
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = 1; R <= range.e.r; R++) {
+                const cell = ws[XLSX.utils.encode_cell({ r: R, c: impCol })];
+                if (cell && typeof cell.v === 'number') { cell.t = 'n'; cell.z = '#,##0.00'; }
+            }
+            ws['!cols'] = EXCEL_COLS.map(([k]) => ({ wch: k === 'archivo' ? 40 : k === 'referencia' ? 24 : k === 'tipo' ? 18 : 12 }));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Comprobantes');
+            const stamp = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `Comprobantes_${stamp}.xlsx`);
         }
     </script>
 </body>
